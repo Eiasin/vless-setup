@@ -7,15 +7,19 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# Load config
 source /etc/vless-config.conf 2>/dev/null
 CF_IP=${CF_IP:-104.16.119.28}
 DOMAIN=${DOMAIN:-vpn2.kanij.site}
 WS_PATH=${WS_PATH:-/ray}
+CLIENT_PORT=${CLIENT_PORT:-443}
+CLIENT_TLS=${CLIENT_TLS:-tls}
 
 show_menu() {
     clear
     echo -e "${YELLOW}════════════════════════════════════${NC}"
     echo -e "${YELLOW}   VLESS Link Generator${NC}"
+    echo -e "${YELLOW}   Port: $CLIENT_PORT | TLS: $CLIENT_TLS${NC}"
     echo -e "${YELLOW}════════════════════════════════════${NC}"
     echo "1. Create New User"
     echo "2. List All Users"
@@ -26,28 +30,38 @@ show_menu() {
     read -p "Choose (1-5): " choice
 }
 
+make_link() {
+    local UUID=$1
+    local USERNAME=$2
+    ENCODED_PATH=$(echo -n "$WS_PATH" | sed 's|/|%2F|g')
+    if [[ "$CLIENT_TLS" == "tls" ]]; then
+        echo "vless://$UUID@$CF_IP:$CLIENT_PORT?path=$ENCODED_PATH&host=$DOMAIN&type=ws&security=tls&sni=$DOMAIN&encryption=none#$USERNAME"
+    else
+        echo "vless://$UUID@$CF_IP:$CLIENT_PORT?path=$ENCODED_PATH&host=$DOMAIN&type=ws&encryption=none#$USERNAME"
+    fi
+}
+
 create_user() {
     read -p "Enter username: " USERNAME
     UUID=$(cat /proc/sys/kernel/random/uuid)
 
-    # Save to config
     apt install -y jq > /dev/null 2>&1
     jq ".inbounds[0].settings.clients += [{\"id\": \"$UUID\", \"flow\": \"\"}]" \
         $CONFIG > /tmp/config.json
     mv /tmp/config.json $CONFIG
     systemctl restart xray > /dev/null 2>&1
 
-    # Save name + UUID to users file
     echo "$USERNAME:$UUID" >> $USERS_FILE
 
-    ENCODED_PATH=$(echo -n "$WS_PATH" | sed 's|/|%2F|g')
-    LINK="vless://$UUID@$CF_IP:80?path=$ENCODED_PATH&host=$DOMAIN&type=ws&encryption=none#$USERNAME"
+    LINK=$(make_link "$UUID" "$USERNAME")
 
     echo ""
     echo -e "${GREEN}✓ User Created!${NC}"
     echo ""
     echo -e "${YELLOW}Username:${NC} $USERNAME"
     echo -e "${YELLOW}UUID:${NC} $UUID"
+    echo -e "${YELLOW}Port:${NC} $CLIENT_PORT"
+    echo -e "${YELLOW}TLS:${NC} $CLIENT_TLS"
     echo ""
     echo -e "${YELLOW}VLESS Link:${NC}"
     echo -e "${GREEN}$LINK${NC}"
@@ -96,8 +110,7 @@ generate_link() {
     USERNAME=$(echo "$LINE" | cut -d: -f1)
     UUID=$(echo "$LINE" | cut -d: -f2)
 
-    ENCODED_PATH=$(echo -n "$WS_PATH" | sed 's|/|%2F|g')
-    LINK="vless://$UUID@$CF_IP:80?path=$ENCODED_PATH&host=$DOMAIN&type=ws&encryption=none#$USERNAME"
+    LINK=$(make_link "$UUID" "$USERNAME")
 
     echo ""
     echo -e "${GREEN}VLESS Link for $USERNAME:${NC}"
@@ -127,14 +140,12 @@ delete_user() {
     USERNAME=$(echo "$LINE" | cut -d: -f1)
     UUID=$(echo "$LINE" | cut -d: -f2)
 
-    # Remove from xray config
     apt install -y jq > /dev/null 2>&1
     jq ".inbounds[0].settings.clients |= map(select(.id != \"$UUID\"))" \
         $CONFIG > /tmp/config.json
     mv /tmp/config.json $CONFIG
     systemctl restart xray > /dev/null 2>&1
 
-    # Remove from users file
     sed -i "${NUM}d" $USERS_FILE
 
     echo ""
