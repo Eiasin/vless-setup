@@ -12,14 +12,31 @@ bash /root/vless-setup/generate-vless-link.sh
 
 ## 📱 Client Settings (v2rayNG)
 
-| Field   | Value              |
-|---------|--------------------|
-| Address | 104.16.119.28      |
-| Port    | 80                 |
-| Network | ws                 |
-| Path    | /ray               |
-| Host    | তোমার domain       |
-| TLS     | OFF                |
+| Field   | HTTP (port 80) | HTTPS (port 443) |
+|---------|----------------|------------------|
+| Address | 104.16.119.28  | 104.16.119.28    |
+| Port    | 80             | 443              |
+| Network | ws             | ws               |
+| Path    | /ray           | /ray             |
+| Host    | তোমার domain   | তোমার domain     |
+| TLS     | OFF            | ON               |
+| SNI     | -              | তোমার domain     |
+
+---
+
+## 🔒 SSL Certificate Setup (গুরুত্বপূর্ণ)
+
+### SSL নেওয়ার আগে:
+1. Cloudflare Dashboard → DNS
+2. তোমার domain A Record → Grey Cloud (DNS Only) করো
+3. Script চালাও → SSL certificate নেওয়া হবে
+4. SSL নেওয়া হলে → আবার Orange Cloud (Proxied) করো
+5. Cloudflare → SSL/TLS → Full করো
+
+### SSL নেওয়ার পর Cloudflare Settings:
+- DNS → Orange Cloud (Proxied) ✓
+- SSL/TLS Mode → Full ✓
+- Network → WebSockets → ON ✓
 
 ---
 
@@ -45,7 +62,7 @@ UUID আছে কিনা চেক করো। না থাকলে manual
 ```bash
 sudo nano /usr/local/etc/xray/config.json
 ```
-clients array-তে নতুন UUID যোগ করো:
+clients array-তে যোগ করো:
 ```json
 {"id": "তোমার-UUID", "flow": ""}
 ```
@@ -129,9 +146,11 @@ sudo systemctl restart nginx
 sqlite3 /etc/x-ui/x-ui.db "UPDATE settings SET value='0.0.0.0' WHERE key='webListen';"
 x-ui restart
 ```
-তারপর browser-এ:
-```
-http://তোমার-VPS-IP:54321/তোমার-base-path/
+
+### 10. SSL certificate renew করতে
+```bash
+sudo certbot renew
+sudo systemctl restart nginx
 ```
 
 ---
@@ -140,7 +159,10 @@ http://তোমার-VPS-IP:54321/তোমার-base-path/
 
 - GitHub Token কখনো share করবে না
 - Repository Private রাখো
-- Cloudflare DNS Proxied (Orange) সবসময় রাখবে
+- SSL নেওয়ার সময় Cloudflare DNS Grey Cloud করো, শেষ হলে Orange Cloud করো
+- Cloudflare SSL/TLS → Full রাখবে (SSL থাকলে)
+- Cloudflare SSL/TLS → Flexible রাখবে (SSL না থাকলে)
+- Cloudflare Network → WebSockets → সবসময় ON রাখবে
 - User delete করার পর xray status চেক করো
 - UUID হারিয়ে গেলে config.json এ manually যোগ করো
 - নতুন user বানানোর পর সবসময় xray restart করো
