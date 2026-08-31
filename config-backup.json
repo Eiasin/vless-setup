@@ -1,0 +1,55 @@
+{
+  "log": {
+    "loglevel": "warning"
+  },
+  "inbounds": [
+    {
+      "port": 10000,
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {
+            "id": "97deae49-ecbd-4b31-84a0-eab4458d9712",
+            "flow": ""
+          },
+          {
+            "id": "6861a1d1-d058-478d-aaf3-830f4f7eded5",
+            "flow": ""
+          },
+          {
+            "id": "5111c86c-675b-4b3d-99f1-17f6e3ce02f8",
+            "flow": ""
+          },
+          {
+            "id": "36b22b08-fa17-4886-843d-62c7218c3943",
+            "flow": ""
+          },
+          {
+            "id": "c541818b-afa7-4e66-bd65-2e92a442b4e2",
+            "flow": ""
+          },
+          {
+            "id": "88c016ab-5cc3-4a0d-8178-0b76cb6eae7a",
+            "flow": ""
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "ws",
+        "wsSettings": {
+          "path": "/ray",
+          "headers": {
+            "Host": "vpn2.kanij.site"
+          }
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {}
+    }
+  ]
+}
